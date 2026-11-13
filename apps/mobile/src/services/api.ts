@@ -1,4 +1,4 @@
-import type { Appliance, AppliancePayload, ConsumptionSummary, HouseholdConfig, Tariff } from '../types';
+import type { Appliance, AppliancePayload, ConsumptionSummary, HouseholdConfig, SensorReading, SensorReadingPayload, Tariff } from '../types';
 
 // 10.0.2.2 é o loopback do host no emulador Android.
 // Para dispositivo físico, defina EXPO_PUBLIC_API_URL com o IP da máquina.
@@ -41,4 +41,10 @@ export const api = {
 
   getActiveTariff: () =>
     request<Tariff>('/tariffs/active'),
+
+  createSensorReading: (data: SensorReadingPayload) =>
+    request<SensorReading>('/sensors/readings', { method: 'POST', body: JSON.stringify(data) }),
+
+  getSensorReadings: (limit = 20) =>
+    request<SensorReading[]>(`/sensors/readings?limit=${limit}`),
 };

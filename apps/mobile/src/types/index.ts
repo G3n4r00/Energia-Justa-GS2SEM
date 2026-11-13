@@ -31,6 +31,24 @@ export type ConsumptionItem = {
   pct_of_total: number;
 };
 
+export type SensorReading = {
+  id: number;
+  voltage_rms_v: number;
+  current_rms_a: number;
+  power_factor: number;
+  power_w: number;
+  appliance_id: number | null;
+  simulated: boolean;
+  created_at: string;
+};
+
+export type SensorReadingPayload = {
+  voltage_rms_v: number;
+  current_rms_a: number;
+  power_factor: number;
+  appliance_id?: number;
+};
+
 export type Tariff = {
   id: number;
   source: string;

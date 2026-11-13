@@ -38,3 +38,16 @@ class Tariff(Base):
     is_demo = Column(Boolean, default=False, nullable=False)
     import_run = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class SensorReading(Base):
+    __tablename__ = "sensor_readings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    voltage_rms_v = Column(Float, nullable=False)
+    current_rms_a = Column(Float, nullable=False)
+    power_factor = Column(Float, nullable=False)
+    power_w = Column(Float, nullable=False)
+    appliance_id = Column(Integer, nullable=True)
+    simulated = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

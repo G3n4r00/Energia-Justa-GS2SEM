@@ -46,6 +46,26 @@ class HouseholdConfigUpdate(BaseModel):
     cycle_days: Optional[int] = Field(default=None, ge=1, le=31)
 
 
+class SensorReadingCreate(BaseModel):
+    voltage_rms_v: float = Field(gt=0, le=300)
+    current_rms_a: float = Field(ge=0, le=100)
+    power_factor: float = Field(gt=0, le=1.0, default=0.92)
+    appliance_id: Optional[int] = None
+
+
+class SensorReadingOut(BaseModel):
+    id: int
+    voltage_rms_v: float
+    current_rms_a: float
+    power_factor: float
+    power_w: float
+    appliance_id: Optional[int]
+    simulated: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class TariffOut(BaseModel):
     id: int
     source: str

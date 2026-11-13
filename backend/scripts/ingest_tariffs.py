@@ -1,54 +1,55 @@
 """
-ETL: ingere o CSV de tarifas de aplicação da ANEEL e persiste no banco.
+ETL de tarifas da ANEEL via CKAN Datastore API.
+
+Em vez de baixar o CSV completo (155 MB), consulta diretamente o Datastore,
+que retorna apenas os ~2 registros relevantes (~3 KB, < 1 s).
+
+Change detection por hash MD5 do recurso: só importa quando a ANEEL publica
+uma nova versão do dataset.
 
 Uso:
-    python -m scripts.ingest_tariffs <caminho_para_csv>
-
-Saída esperada do ANEEL:
-    "Tarifas de fornecimento — Tarifa de Aplicação"
-    Separador ponto-e-vírgula; decimais com vírgula; encoding UTF-8 ou Latin-1.
-    Colunas relevantes: NomAgente, DatInicioVigencia, SigModalidadeTarifaria,
-    NomSubGrupo, VlrTE, VlrTUSD.
-
-Critério de seleção: Enel SP, B1 residencial convencional.
-Fallback: se não encontrar, sinaliza claramente e não insere dados.
+    python -m scripts.ingest_tariffs
 """
 
-import hashlib
+import asyncio
+import logging
 import sys
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
-import pandas as pd
+import httpx
 from sqlalchemy.orm import Session
 
-# Permite rodar de dentro de backend/ ou da raiz do monorepo
 _ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(_ROOT))
 
 from app.database import SessionLocal, create_tables
 from app.models import Tariff
 
+logger = logging.getLogger(__name__)
 
-# ── constantes de seleção ─────────────────────────────────────────────────────
+# Recurso "tarifas-homologadas-distribuidoras-energia-eletrica" no portal ANEEL
+_CKAN_BASE = "https://dadosabertos.aneel.gov.br/api/3/action"
+_RESOURCE_ID = "fcf2906c-7c32-4b9b-a637-054e7a5234f4"
 
-_AGENT_KEYWORDS = ["ENEL", "SAO PAULO"]   # sem acento para tolerância
-_MODALITY = "B1"
-_SUBGROUP_KEYWORDS = ["RESIDENCIAL"]
+# Filtros exatos para Enel SP (Eletropaulo), B1 residencial convencional
+# DscDetalhe "Não se aplica" exclui microgeração (SCEE)
+_FILTERS = {
+    "SigAgente": "ELETROPAULO",
+    "DscSubGrupo": "B1",
+    "DscModalidadeTarifaria": "Convencional",
+    "DscClasse": "Residencial",
+    "DscSubClasse": "Residencial",
+    "DscDetalhe": "Não se aplica",
+    "DscBaseTarifaria": "Tarifa de Aplicação",
+}
+
+_TIMEOUT_HASH = 10.0    # resource_show é leve
+_TIMEOUT_DATA = 30.0    # datastore_search pode ser mais lento
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def _parse_float(value: str) -> float:
+def _parse_float(value) -> float:
     return float(str(value).replace(",", ".").strip())
 
 
@@ -61,124 +62,113 @@ def _parse_date(value: str) -> Optional[date]:
     return None
 
 
-def _load_csv(path: Path) -> pd.DataFrame:
-    for enc in ("utf-8", "utf-8-sig", "latin-1"):
-        try:
-            df = pd.read_csv(path, sep=";", encoding=enc, dtype=str)
-            if len(df.columns) > 2:
-                return df
-        except Exception:
-            continue
-    raise ValueError(f"Não foi possível ler o CSV: {path}")
+def get_resource_hash(client: httpx.Client) -> Optional[str]:
+    """Hash MD5 do recurso CKAN; muda a cada publicação semanal da ANEEL."""
+    r = client.get(
+        f"{_CKAN_BASE}/resource_show",
+        params={"id": _RESOURCE_ID},
+        timeout=_TIMEOUT_HASH,
+    )
+    r.raise_for_status()
+    return r.json().get("result", {}).get("hash")
 
 
-def _find_row(df: pd.DataFrame) -> Optional[pd.Series]:
-    # Normaliza nomes de colunas
-    df.columns = [c.strip() for c in df.columns]
+def fetch_tariff_row(client: httpx.Client) -> dict:
+    """Registro mais recente via Datastore (~3 KB); nenhum download de CSV."""
+    r = client.post(
+        f"{_CKAN_BASE}/datastore_search",
+        json={
+            "resource_id": _RESOURCE_ID,
+            "filters": _FILTERS,
+            "sort": "DatInicioVigencia desc",
+            "limit": 2,
+        },
+        timeout=_TIMEOUT_DATA,
+    )
+    r.raise_for_status()
+    records = r.json().get("result", {}).get("records", [])
+    if not records:
+        raise ValueError(
+            "Nenhum registro ELETROPAULO / B1 residencial convencional "
+            "encontrado no Datastore da ANEEL. "
+            "Verifique os filtros ou use a tarifa demonstrativa como fallback."
+        )
+    return records[0]
 
-    agent_col = next((c for c in df.columns if "NomAgente" in c or "NoMAgente" in c), None)
-    modal_col = next((c for c in df.columns if "Modalidade" in c or "MODALIDADE" in c.upper()), None)
-    sub_col   = next((c for c in df.columns if "SubGrupo" in c or "SUBGRUPO" in c.upper()), None)
-    te_col    = next((c for c in df.columns if c.strip() in ("VlrTE", "TE")), None)
-    tusd_col  = next((c for c in df.columns if c.strip() in ("VlrTUSD", "TUSD")), None)
-    date_col  = next((c for c in df.columns if "InicioVigencia" in c or "Inicio" in c), None)
 
-    missing = [n for n, c in [("NomAgente", agent_col), ("Modalidade", modal_col),
-                               ("VlrTE", te_col), ("VlrTUSD", tusd_col)] if c is None]
-    if missing:
-        raise ValueError(f"Colunas não encontradas no CSV: {missing}")
+def refresh_tariff_if_stale(db: Session) -> Optional[Tariff]:
+    """
+    Verifica o hash do recurso CKAN e importa nova tarifa apenas se a ANEEL
+    publicou uma versão mais recente desde a última importação.
 
-    mask = pd.Series([True] * len(df))
+    Retorna a Tariff gravada (nova ou já existente), ou None se a ANEEL
+    estiver indisponível.
+    """
+    try:
+        with httpx.Client() as client:
+            remote_hash = get_resource_hash(client)
 
-    # Filtro por distribuidora
-    agent_upper = df[agent_col].str.upper().str.replace("[^A-Z ]", "", regex=True)
-    for kw in _AGENT_KEYWORDS:
-        mask &= agent_upper.str.contains(kw, na=False)
+            if remote_hash:
+                existing = (
+                    db.query(Tariff)
+                    .filter(Tariff.import_run == remote_hash, Tariff.is_demo == False)
+                    .first()
+                )
+                if existing:
+                    logger.info(
+                        "[ETL] Tarifa já atualizada (hash %s…). Nada a fazer.",
+                        remote_hash[:12],
+                    )
+                    return existing
 
-    # Filtro por modalidade
-    mask &= df[modal_col].str.strip().str.upper() == _MODALITY
+            row = fetch_tariff_row(client)
 
-    # Filtro por subgrupo (quando coluna existe)
-    if sub_col:
-        sub_upper = df[sub_col].str.upper()
-        sub_mask = pd.Series([False] * len(df))
-        for kw in _SUBGROUP_KEYWORDS:
-            sub_mask |= sub_upper.str.contains(kw, na=False)
-        mask &= sub_mask
-
-    filtered = df[mask]
-    if filtered.empty:
+    except httpx.HTTPError as exc:
+        logger.warning("[ETL] ANEEL indisponível (%s); usando tarifa existente.", exc)
+        return None
+    except Exception as exc:
+        logger.warning("[ETL] Erro inesperado ao consultar ANEEL: %s", exc)
         return None
 
-    # Usa a primeira linha com vigência mais recente
-    if date_col:
-        filtered = filtered.copy()
-        filtered["_date"] = filtered[date_col].apply(_parse_date)
-        filtered = filtered.sort_values("_date", ascending=False)
-
-    row = filtered.iloc[0]
-    return row, te_col, tusd_col, date_col
-
-
-def ingest(csv_path: Path, db: Session) -> Tariff:
-    file_hash = _sha256(csv_path)
-
-    # Idempotência: mesma importação não duplica
-    existing = db.query(Tariff).filter(Tariff.import_run == file_hash).first()
-    if existing:
-        print(f"[ETL] Arquivo já importado (SHA-256: {file_hash[:12]}…). Nada a fazer.")
-        return existing
-
-    df = _load_csv(csv_path)
-    result = _find_row(df)
-
-    if result is None:
-        raise ValueError(
-            "Nenhuma linha Enel SP / B1 residencial encontrada. "
-            "Verifique o CSV ou use tarifa demonstrativa como fallback."
-        )
-
-    row, te_col, tusd_col, date_col = result
-    te   = _parse_float(row[te_col])
-    tusd = _parse_float(row[tusd_col])
+    te   = _parse_float(row.get("VlrTE",   "0"))
+    tusd = _parse_float(row.get("VlrTUSD", "0"))
     rate = round((te + tusd) / 1000.0, 6)
-
-    eff_date = _parse_date(row[date_col]) if date_col else None
+    eff_date = _parse_date(row.get("DatInicioVigencia"))
 
     tariff = Tariff(
         source="ANEEL",
-        distributor="Enel SP",
+        distributor="Enel SP (Eletropaulo)",
         modality="B1 residencial convencional",
         rate_brl_kwh=rate,
         effective_date=eff_date,
         is_demo=False,
-        import_run=file_hash,
+        import_run=remote_hash,
     )
     db.add(tariff)
     db.commit()
     db.refresh(tariff)
 
-    print(
-        f"[ETL] Tarifa importada: R$ {rate:.4f}/kWh "
-        f"(TE={te} + TUSD={tusd} R$/MWh) "
-        f"vigência {eff_date} | SHA-256: {file_hash[:12]}…"
+    logger.info(
+        "[ETL] Tarifa importada: R$ %.5f/kWh "
+        "(TE=%.2f + TUSD=%.2f R$/MWh) vigência %s | hash %s…",
+        rate, te, tusd, eff_date, (remote_hash or "")[:12],
     )
     return tariff
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Uso: python -m scripts.ingest_tariffs <caminho_csv>")
-        sys.exit(1)
-
-    csv_path = Path(sys.argv[1])
-    if not csv_path.exists():
-        print(f"Arquivo não encontrado: {csv_path}")
-        sys.exit(1)
-
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     create_tables()
     db = SessionLocal()
     try:
-        ingest(csv_path, db)
+        result = refresh_tariff_if_stale(db)
+        if result:
+            print(
+                f"Tarifa vigente: R$ {result.rate_brl_kwh:.5f}/kWh | "
+                f"vigência {result.effective_date} | "
+                f"hash {(result.import_run or '')[:12]}…"
+            )
+        else:
+            print("Sem atualização disponível ou ANEEL indisponível.")
     finally:
         db.close()

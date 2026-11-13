@@ -27,12 +27,12 @@ def run_seed(db: Session) -> None:
     if db.query(Tariff).count() == 0:
         db.add(Tariff(
             source="demonstrativo",
-            distributor="Enel SP",
+            distributor="Enel SP (Eletropaulo)",
             modality="B1 residencial convencional",
-            rate_brl_kwh=0.85,
-            effective_date=date(2026, 1, 1),
+            rate_brl_kwh=0.789,
+            effective_date=date(2026, 7, 4),
             is_demo=True,
-            import_run="seed_v1",
+            import_run="seed_v2",
         ))
 
     db.commit()

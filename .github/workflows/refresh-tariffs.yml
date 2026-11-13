@@ -1,0 +1,77 @@
+name: Atualizar tarifa ANEEL
+
+# Executa toda segunda-feira às 7h UTC (depois de possíveis publicações da ANEEL).
+# workflow_dispatch permite disparo manual — útil para demonstração no pitch.
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      log_level:
+        description: 'Nível de log (INFO ou DEBUG)'
+        required: false
+        default: 'INFO'
+        type: choice
+        options: [INFO, DEBUG]
+
+jobs:
+  refresh-tariff:
+    name: Verificar e importar tarifa Enel SP (B1 residencial)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Instalar dependências
+        run: pip install -r backend/requirements.txt
+
+      - name: Verificar hash do recurso CKAN
+        id: check_hash
+        run: |
+          python - <<'EOF'
+          import httpx, json, sys
+          r = httpx.get(
+              "https://dadosabertos.aneel.gov.br/api/3/action/resource_show",
+              params={"id": "fcf2906c-7c32-4b9b-a637-054e7a5234f4"},
+              timeout=10,
+          )
+          result = r.json().get("result", {})
+          print(f"hash={result.get('hash', 'unavailable')}")
+          print(f"last_modified={result.get('last_modified', 'unknown')}")
+          with open("$GITHUB_OUTPUT", "a") as f:
+              f.write(f"resource_hash={result.get('hash', '')}\n")
+          EOF
+        shell: bash
+
+      - name: Importar tarifa via Datastore API
+        run: |
+          python -c "
+          import logging, sys
+          logging.basicConfig(level=logging.${LOG_LEVEL}, format='%(message)s')
+          sys.path.insert(0, '.')
+          from app.database import create_tables, SessionLocal
+          from scripts.ingest_tariffs import refresh_tariff_if_stale
+          create_tables()
+          db = SessionLocal()
+          try:
+              t = refresh_tariff_if_stale(db)
+              if t:
+                  print(f'::notice::Tarifa: R\$ {t.rate_brl_kwh:.5f}/kWh | vigência {t.effective_date} | {t.distributor}')
+              else:
+                  print('::warning::ANEEL indisponível ou nenhuma atualização.')
+                  sys.exit(0)
+          finally:
+              db.close()
+          "
+        working-directory: backend
+        env:
+          DATABASE_URL: sqlite:///./data/energiajusta.db
+          LOG_LEVEL: ${{ inputs.log_level || 'INFO' }}

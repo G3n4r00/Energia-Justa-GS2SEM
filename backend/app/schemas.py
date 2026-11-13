@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 
@@ -44,6 +44,18 @@ class HouseholdConfigOut(BaseModel):
 class HouseholdConfigUpdate(BaseModel):
     budget_brl: Optional[float] = Field(default=None, gt=0)
     cycle_days: Optional[int] = Field(default=None, ge=1, le=31)
+
+
+class TariffOut(BaseModel):
+    id: int
+    source: str
+    distributor: str
+    modality: str
+    rate_brl_kwh: float
+    effective_date: Optional[date]
+    is_demo: bool
+
+    model_config = {"from_attributes": True}
 
 
 class ConsumptionItemOut(BaseModel):

@@ -1,4 +1,4 @@
-import type { Appliance, AppliancePayload, ConsumptionSummary, HouseholdConfig } from '../types';
+import type { Appliance, AppliancePayload, ConsumptionSummary, HouseholdConfig, Tariff } from '../types';
 
 // 10.0.2.2 é o loopback do host no emulador Android.
 // Para dispositivo físico, defina EXPO_PUBLIC_API_URL com o IP da máquina.
@@ -38,4 +38,7 @@ export const api = {
 
   updateConfig: (data: { budget_brl?: number; cycle_days?: number }) =>
     request<HouseholdConfig>('/config', { method: 'PUT', body: JSON.stringify(data) }),
+
+  getActiveTariff: () =>
+    request<Tariff>('/tariffs/active'),
 };

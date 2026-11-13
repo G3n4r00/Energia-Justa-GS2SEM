@@ -31,6 +31,16 @@ export type ConsumptionItem = {
   pct_of_total: number;
 };
 
+export type Tariff = {
+  id: number;
+  source: string;
+  distributor: string;
+  modality: string;
+  rate_brl_kwh: number;
+  effective_date: string | null;
+  is_demo: boolean;
+};
+
 export type ConsumptionSummary = {
   total_kwh: number;
   total_brl: number;

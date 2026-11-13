@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../services/api';
-import type { ConsumptionSummary } from '../types';
+import type { ConsumptionSummary, Tariff } from '../types';
 import { BudgetBar } from '../ui/BudgetBar';
 import { Card } from '../ui/Card';
 import { NumberDisplay } from '../ui/NumberDisplay';
@@ -17,6 +17,7 @@ import { colors, space, type } from '../ui/tokens';
 
 export function HomeScreen() {
   const [summary, setSummary] = useState<ConsumptionSummary | null>(null);
+  const [tariff, setTariff] = useState<Tariff | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -24,8 +25,12 @@ export function HomeScreen() {
     setLoading(true);
     setErro(null);
     try {
-      const data = await api.getConsumptionSummary();
+      const [data, tar] = await Promise.all([
+        api.getConsumptionSummary(),
+        api.getActiveTariff(),
+      ]);
       setSummary(data);
+      setTariff(tar);
     } catch (e) {
       setErro(String(e));
     } finally {
@@ -88,6 +93,35 @@ export function HomeScreen() {
         )}
       </Card>
 
+      {tariff && (
+        <Card variant="flat" style={styles.tariffCard}>
+          <Text style={styles.tariffTitle}>Tarifa aplicada</Text>
+          <View style={styles.tariffRow}>
+            <Text style={styles.tariffLabel}>Distribuidora</Text>
+            <Text style={styles.tariffValue}>{tariff.distributor}</Text>
+          </View>
+          <View style={styles.tariffRow}>
+            <Text style={styles.tariffLabel}>Modalidade</Text>
+            <Text style={styles.tariffValue}>{tariff.modality}</Text>
+          </View>
+          <View style={styles.tariffRow}>
+            <Text style={styles.tariffLabel}>R$/kWh</Text>
+            <Text style={styles.tariffValue}>
+              R$ {tariff.rate_brl_kwh.toFixed(4).replace('.', ',')}
+            </Text>
+          </View>
+          {tariff.effective_date && (
+            <View style={styles.tariffRow}>
+              <Text style={styles.tariffLabel}>Vigência</Text>
+              <Text style={styles.tariffValue}>
+                {tariff.effective_date.split('-').reverse().join('/')}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.tariffSource}>Fonte: {tariff.source}</Text>
+        </Card>
+      )}
+
       <Text style={styles.sectionTitle}>Maiores consumidores</Text>
 
       <Card variant="flat">
@@ -137,6 +171,13 @@ const styles = StyleSheet.create({
   budgetMeta: { ...type.caption, color: colors.textSecondary },
   demoLabel: { ...type.caption, color: colors.warning, fontStyle: 'italic' },
 
+  tariffCard: { gap: space.xs },
+  tariffTitle: { ...type.label, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: space.xs },
+  tariffRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
+  tariffLabel: { ...type.caption, color: colors.textSecondary },
+  tariffValue: { ...type.caption, color: colors.textPrimary, fontWeight: '500' },
+  tariffSource: { ...type.caption, color: colors.textSecondary, marginTop: space.xs },
+
   sectionTitle: {
     ...type.label,
     color: colors.textSecondary,
@@ -161,3 +202,4 @@ const styles = StyleSheet.create({
   itemBrl: { ...type.label, color: colors.textPrimary, fontWeight: '600' },
   itemPct: { ...type.caption, color: colors.textSecondary, marginTop: 2 },
 });
+

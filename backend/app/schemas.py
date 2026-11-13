@@ -100,6 +100,15 @@ class PlanRequest(BaseModel):
     target_brl: Optional[float] = Field(default=None, gt=0)
 
 
+class CatalogItemOut(BaseModel):
+    id: str
+    name: str
+    power_w: float
+    category: str
+    typical_daily_hours: float
+    is_protected_default: bool
+
+
 class PlanItemOut(BaseModel):
     id: int
     appliance_id: int

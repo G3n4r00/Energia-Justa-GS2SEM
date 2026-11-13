@@ -1,3 +1,12 @@
+export type CatalogItem = {
+  id: string;
+  name: string;
+  power_w: number;
+  category: string;
+  typical_daily_hours: number;
+  is_protected_default: boolean;
+};
+
 export type Appliance = {
   id: number;
   name: string;

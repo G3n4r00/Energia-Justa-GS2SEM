@@ -17,11 +17,11 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../services/api';
-import type { Appliance, AppliancePayload } from '../types';
+import type { Appliance, AppliancePayload, CatalogItem } from '../types';
 import { ApplianceRow } from '../ui/ApplianceRow';
 import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
 import { colors, radius, space, type } from '../ui/tokens';
+import { CatalogPickerModal } from './CatalogPickerModal';
 
 type FormState = {
   name: string;
@@ -53,6 +53,7 @@ export function AppliancesScreen() {
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  const [catalogVisible, setCatalogVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<Appliance | null>(null);
   const [form, setForm] = useState<FormState>(FORM_EMPTY);
@@ -83,6 +84,20 @@ export function AppliancesScreen() {
   function openCreate() {
     setEditing(null);
     setForm(FORM_EMPTY);
+    setCatalogVisible(true);
+  }
+
+  function handleCatalogSelect(item: CatalogItem | null) {
+    if (item) {
+      setForm({
+        name: item.name,
+        power_w: String(item.power_w),
+        daily_hours: String(item.typical_daily_hours),
+        is_protected: item.is_protected_default,
+      });
+    } else {
+      setForm(FORM_EMPTY);
+    }
     setModalVisible(true);
   }
 
@@ -181,6 +196,12 @@ export function AppliancesScreen() {
         <Ionicons name="add" size={28} color={colors.textInverse} />
       </Pressable>
 
+      <CatalogPickerModal
+        visible={catalogVisible}
+        onClose={() => setCatalogVisible(false)}
+        onSelect={handleCatalogSelect}
+      />
+
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -193,7 +214,7 @@ export function AppliancesScreen() {
         >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editing ? 'Editar aparelho' : 'Novo aparelho'}
+              {editing ? 'Editar aparelho' : 'Confirmar aparelho'}
             </Text>
             <Pressable onPress={() => setModalVisible(false)} hitSlop={12}>
               <Ionicons name="close" size={24} color={colors.textSecondary} />

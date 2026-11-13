@@ -219,15 +219,15 @@ const styles = StyleSheet.create({
   },
 
   resultBox: {
-    backgroundColor: colors.surfaceVariant,
-    borderRadius: 8,
+    backgroundColor: colors.brand,
+    borderRadius: 12,
     padding: space.md,
     alignItems: 'center',
     gap: 4,
   },
-  resultLabel: { ...typeTokens.caption, color: colors.textSecondary },
-  resultValue: { fontSize: 32, fontWeight: '700', color: colors.accent, letterSpacing: -0.5 },
-  resultEmpty: { ...typeTokens.body, color: colors.textSecondary },
+  resultLabel: { ...typeTokens.caption, color: 'rgba(255,255,255,0.55)' },
+  resultValue: { fontSize: 40, fontWeight: '700', color: colors.accent, letterSpacing: -1 },
+  resultEmpty: { ...typeTokens.body, color: 'rgba(255,255,255,0.45)' },
 
   erroTexto: { ...typeTokens.caption, color: colors.danger },
 

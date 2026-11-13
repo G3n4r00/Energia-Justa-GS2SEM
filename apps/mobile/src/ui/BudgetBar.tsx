@@ -6,6 +6,7 @@ type Props = {
   used: number;
   total: number;
   style?: ViewStyle;
+  dark?: boolean;
 };
 
 type Status = 'ok' | 'warning' | 'over';
@@ -28,19 +29,23 @@ const STATUS_LABEL: Record<Status, string> = {
   over:    'acima do orçamento',
 };
 
-export function BudgetBar({ used, total, style }: Props) {
+export function BudgetBar({ used, total, style, dark = false }: Props) {
   const pct = total > 0 ? Math.min(used / total, 1) : 0;
   const status = getStatus(used / (total || 1));
   const barColor = STATUS_COLOR[status];
 
+  const trackBg = dark ? 'rgba(255,255,255,0.15)' : colors.surfaceVariant;
+  const labelColor = dark ? 'rgba(255,255,255,0.75)' : barColor;
+  const pctColor = dark ? 'rgba(255,255,255,0.55)' : colors.textSecondary;
+
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.track}>
+      <View style={[styles.track, { backgroundColor: trackBg }]}>
         <View style={[styles.fill, { width: `${pct * 100}%`, backgroundColor: barColor }]} />
       </View>
       <View style={styles.row}>
-        <Text style={[styles.statusLabel, { color: barColor }]}>{STATUS_LABEL[status]}</Text>
-        <Text style={styles.pct}>{Math.round(pct * 100)}%</Text>
+        <Text style={[styles.statusLabel, { color: labelColor }]}>{STATUS_LABEL[status]}</Text>
+        <Text style={[styles.pct, { color: pctColor }]}>{Math.round(pct * 100)}%</Text>
       </View>
     </View>
   );
@@ -49,8 +54,7 @@ export function BudgetBar({ used, total, style }: Props) {
 const styles = StyleSheet.create({
   container: { gap: space.xs },
   track: {
-    height: 8,
-    backgroundColor: colors.surfaceVariant,
+    height: 14,
     borderRadius: radius.pill,
     overflow: 'hidden',
   },
@@ -64,5 +68,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusLabel: { ...type.caption },
-  pct:         { ...type.caption, color: colors.textSecondary },
+  pct:         { ...type.caption },
 });

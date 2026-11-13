@@ -7,10 +7,9 @@ type Props = {
   label?: string;
   showDisclaimer?: boolean;
   style?: ViewStyle;
+  onDark?: boolean;
 };
 
-// Formata número como moeda BRL sem depender de Intl (disponível no RN, mas
-// o comportamento pode variar em AVDs com locale configurado diferente)
 function formatBRL(value: number): string {
   const abs = Math.abs(value);
   const cents = Math.round(abs * 100);
@@ -20,13 +19,17 @@ function formatBRL(value: number): string {
   return `R$ ${reaisFormatted},${centavos}`;
 }
 
-export function NumberDisplay({ value, label, showDisclaimer = true, style }: Props) {
+export function NumberDisplay({ value, label, showDisclaimer = true, style, onDark = false }: Props) {
   return (
     <View style={[styles.container, style]}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      <Text style={styles.value}>{formatBRL(value)}</Text>
+      {label && (
+        <Text style={[styles.label, onDark && styles.labelDark]}>{label}</Text>
+      )}
+      <Text style={[styles.value, onDark && styles.valueDark]}>{formatBRL(value)}</Text>
       {showDisclaimer && (
-        <Text style={styles.disclaimer}>custo estimado — não inclui tributos e bandeiras</Text>
+        <Text style={[styles.disclaimer, onDark && styles.disclaimerDark]}>
+          custo estimado — não inclui tributos e bandeiras
+        </Text>
       )}
     </View>
   );
@@ -43,14 +46,23 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
+  labelDark: {
+    color: 'rgba(255,255,255,0.55)',
+  },
   value: {
     ...type.display,
     color: colors.textPrimary,
+  },
+  valueDark: {
+    color: colors.textInverse,
   },
   disclaimer: {
     ...type.caption,
     color: colors.textCaption,
     marginTop: space.xs,
     textAlign: 'center',
+  },
+  disclaimerDark: {
+    color: 'rgba(255,255,255,0.4)',
   },
 });

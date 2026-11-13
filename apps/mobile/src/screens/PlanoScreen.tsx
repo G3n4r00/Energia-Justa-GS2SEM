@@ -115,10 +115,12 @@ export function PlanoScreen() {
 
       {plano && (
         <>
-          <Card style={[styles.resumoCard, atingiu ? styles.resumoOk : styles.resumoAlert]}>
-            <Text style={[styles.statusLabel, atingiu ? styles.statusOk : styles.statusAlert]}>
-              {atingiu ? 'Meta atingível' : 'Meta não atingível com os aparelhos disponíveis'}
-            </Text>
+          <Card style={styles.resumoCard}>
+            <View style={[styles.statusChip, atingiu ? styles.chipOk : styles.chipAlert]}>
+              <Text style={[styles.statusLabel, atingiu ? styles.statusOk : styles.statusAlert]}>
+                {atingiu ? 'Meta atingível' : 'Meta não atingível com os aparelhos disponíveis'}
+              </Text>
+            </View>
             <View style={styles.resumoRow}>
               <Text style={styles.resumoKey}>Consumo atual</Text>
               <Text style={styles.resumoVal}>{formatBRL(plano.current_brl)}</Text>
@@ -229,9 +231,18 @@ const styles = StyleSheet.create({
   erroTexto: { ...typeTokens.caption, color: colors.danger },
 
   resumoCard: { gap: space.xs },
-  resumoOk: { borderLeftWidth: 3, borderLeftColor: colors.success },
-  resumoAlert: { borderLeftWidth: 3, borderLeftColor: colors.warning },
-  statusLabel: { ...typeTokens.label, fontWeight: '700', marginBottom: space.xs },
+  resumoOk: {},
+  resumoAlert: {},
+  statusChip: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: space.sm + 2,
+    paddingVertical: 4,
+    marginBottom: space.xs,
+  },
+  chipOk: { backgroundColor: colors.successBg },
+  chipAlert: { backgroundColor: colors.warningBg },
+  statusLabel: { ...typeTokens.label, fontWeight: '700' },
   statusOk: { color: colors.success },
   statusAlert: { color: colors.warning },
   resumoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },

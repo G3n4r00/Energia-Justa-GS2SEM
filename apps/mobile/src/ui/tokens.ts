@@ -33,7 +33,7 @@ export const colors = {
 
 export const type = {
   // Tamanho + peso
-  display:  { fontSize: 32, fontWeight: '700' as const },
+  display:  { fontSize: 40, fontWeight: '700' as const, letterSpacing: -1 },
   headline: { fontSize: 20, fontWeight: '700' as const },
   title:    { fontSize: 17, fontWeight: '600' as const },
   body:     { fontSize: 15, fontWeight: '400' as const },

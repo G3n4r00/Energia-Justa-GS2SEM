@@ -81,9 +81,10 @@ export function HomeScreen() {
         <NumberDisplay
           value={summary.total_brl}
           label="consumo estimado"
+          onDark
         />
         <View style={styles.budgetBarWrapper}>
-          <BudgetBar used={summary.total_brl} total={summary.budget_brl} />
+          <BudgetBar used={summary.total_brl} total={summary.budget_brl} dark />
         </View>
         <Text style={styles.budgetMeta}>
           Meta: R$ {summary.budget_brl.toFixed(2).replace('.', ',')} · {summary.cycle_days} dias
@@ -166,9 +167,13 @@ const styles = StyleSheet.create({
     marginTop: space.sm,
   },
 
-  budgetCard: { alignItems: 'center', gap: space.sm },
+  budgetCard: {
+    alignItems: 'center',
+    gap: space.sm,
+    backgroundColor: colors.brand,
+  },
   budgetBarWrapper: { width: '100%', marginTop: space.xs },
-  budgetMeta: { ...type.caption, color: colors.textSecondary },
+  budgetMeta: { ...type.caption, color: 'rgba(255,255,255,0.55)' },
   demoLabel: { ...type.caption, color: colors.warning, fontStyle: 'italic' },
 
   tariffCard: { gap: space.xs },

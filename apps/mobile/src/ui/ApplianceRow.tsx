@@ -11,11 +11,25 @@ type Props = {
   onDelete: () => void;
 };
 
+const CATEGORY_DOT: Record<string, string> = {
+  cooling:       '#3B82F6',
+  heating:       '#EF4444',
+  entertainment: '#8B5CF6',
+  appliance:     '#14B8A6',
+  cooking:       '#F97316',
+  electronics:   '#22C55E',
+  lighting:      '#EAB308',
+  other:         '#9CA3AF',
+};
+
 export function ApplianceRow({ appliance, monthlyCost, onEdit, onDelete }: Props) {
+  const dotColor = CATEGORY_DOT[appliance.category] ?? CATEGORY_DOT.other;
+
   return (
     <View style={styles.container}>
       <Pressable style={styles.main} onPress={onEdit}>
         <View style={styles.nameRow}>
+          <View style={[styles.dot, { backgroundColor: dotColor }]} />
           <Text style={styles.name} numberOfLines={1}>
             {appliance.name}
           </Text>
@@ -65,6 +79,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.xs,
   },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    flexShrink: 0,
+  },
   name: {
     ...type.body,
     color: colors.textPrimary,
@@ -78,6 +98,7 @@ const styles = StyleSheet.create({
     ...type.caption,
     color: colors.textSecondary,
     marginTop: 2,
+    marginLeft: 12,
   },
   right: {
     alignItems: 'flex-end',

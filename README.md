@@ -21,17 +21,31 @@ FIAP Global Solution 2026/2, turma 4ESOA — tema CitizenTech.
 - Node.js 20+
 - Android Studio com AVD (emulador Android) **ou** Expo Go instalado no celular
 
-## Subir o backend
+## Configuração inicial
 
 ```bash
-# Primeira vez: criar o .env a partir do exemplo
-cp backend/.env.example backend/.env
+# Clonar o repositório
+git clone <url-do-repositorio>
+cd Energia-Justa-GS2SEM
 
+# Criar o .env do backend a partir do exemplo
+cp backend/.env.example backend/.env
+# Edite backend/.env e preencha GEMINI_API_KEY com sua chave do Google AI Studio
+```
+
+## Subir o backend e o dashboard
+
+```bash
 docker compose up --build
 ```
 
-O backend sobe em `http://localhost:8000`.
-Confirmação: `curl http://localhost:8000/health`
+| Serviço | URL |
+|---|---|
+| Backend API | http://localhost:8000 |
+| Documentação interativa | http://localhost:8000/docs |
+| Dashboard analítico | http://localhost:5173 |
+
+Confirme que o backend está no ar: `curl http://localhost:8000/health`
 
 ## Rodar o app mobile
 
@@ -43,24 +57,26 @@ npx expo start --android
 
 Com Expo Go no celular: execute `npx expo start` e escaneie o QR code.
 
-> O app usa `http://10.0.2.2:8000` para o emulador Android por padrão.
-> Para dispositivo físico na mesma rede, defina `EXPO_PUBLIC_API_URL=http://<IP-da-maquina>:8000`.
+> O app usa `http://10.0.2.2:8000` para alcançar o backend no emulador Android.
+> Para dispositivo físico na mesma rede: `EXPO_PUBLIC_API_URL=http://<IP-da-maquina>:8000 npx expo start`
 
 ## Rodar os testes do backend
 
 ```bash
 cd backend
 pip install -r requirements.txt
-pytest
+pytest -v
 ```
 
-## Estrutura
+## Estrutura do projeto
 
 ```
 apps/
-  mobile/        App React Native (Expo)
+  mobile/        App React Native (Expo) — 4 telas
+  dashboard/     Dashboard analítico React + Vite + Recharts
 backend/
   app/           Código FastAPI
-  tests/         Testes pytest
+  scripts/       ETL de tarifas ANEEL (CKAN API)
+  tests/         32 testes pytest
 docker-compose.yml
 ```

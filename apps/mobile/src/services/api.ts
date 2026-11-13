@@ -56,4 +56,7 @@ export const api = {
 
   getLastPlan: () =>
     request<Plan>('/plans/last').catch(() => null),
+
+  getExplanation: (planId: number) =>
+    request<{ plan_id: number; explanation: string }>(`/plans/${planId}/explanation`),
 };

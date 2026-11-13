@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Appliance, HouseholdConfig, Plan, PlanItem, Tariff
 from ..recommender import gerar_plano
-from ..schemas import PlanItemOut, PlanOut, PlanRequest
+from ..schemas import PlanExplanationOut, PlanItemOut, PlanOut, PlanRequest
+from ..llm import explain_plan
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
@@ -78,6 +79,28 @@ def last_plan(db: Session = Depends(get_db)):
 def list_plans(db: Session = Depends(get_db)):
     plans = db.query(Plan).order_by(Plan.id.desc()).limit(10).all()
     return [_load_plan(p.id, db) for p in plans]
+
+
+@router.get("/{plan_id}/explanation", response_model=PlanExplanationOut)
+def get_plan_explanation(plan_id: int, db: Session = Depends(get_db)):
+    plan = _load_plan(plan_id, db)
+    plan_dict = {
+        "status": plan.status,
+        "target_brl": plan.target_brl,
+        "current_brl": plan.current_brl,
+        "projected_brl": plan.projected_brl,
+        "savings_brl": plan.savings_brl,
+        "items": [
+            {
+                "appliance_name": it.appliance_name,
+                "current_daily_hours": it.current_daily_hours,
+                "suggested_daily_hours": it.suggested_daily_hours,
+                "saving_brl": it.saving_brl,
+            }
+            for it in plan.items
+        ],
+    }
+    return PlanExplanationOut(plan_id=plan_id, explanation=explain_plan(plan_dict))
 
 
 @router.get("/{plan_id}", response_model=PlanOut)

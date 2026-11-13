@@ -29,6 +29,8 @@ export function PlanoScreen() {
   const [plano, setPlano] = useState<Plan | null>(null);
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [explicacao, setExplicacao] = useState<string | null>(null);
+  const [explicando, setExplicando] = useState(false);
   const metaDefinida = useRef(false);
 
   const carregarUltimoPlano = useCallback(async () => {
@@ -57,6 +59,7 @@ export function PlanoScreen() {
     }
     setErro(null);
     setGerando(true);
+    setExplicacao(null);
     try {
       const p = await api.createPlan(meta);
       setPlano(p);
@@ -64,6 +67,20 @@ export function PlanoScreen() {
       setErro(String(e));
     } finally {
       setGerando(false);
+    }
+  }
+
+  async function explicarPlano() {
+    if (!plano) return;
+    setExplicando(true);
+    setExplicacao(null);
+    try {
+      const res = await api.getExplanation(plano.id);
+      setExplicacao(res.explanation);
+    } catch {
+      setExplicacao('Não foi possível gerar a explicação no momento.');
+    } finally {
+      setExplicando(false);
     }
   }
 
@@ -158,6 +175,24 @@ export function PlanoScreen() {
               </Text>
             </Card>
           )}
+
+          <TouchableOpacity
+            style={[styles.btnExplicar, explicando && styles.btnDisabled]}
+            onPress={explicarPlano}
+            disabled={explicando}
+          >
+            {explicando
+              ? <ActivityIndicator size="small" color={colors.brand} />
+              : <Text style={styles.btnExplicarLabel}>Explicar plano com IA</Text>
+            }
+          </TouchableOpacity>
+
+          {explicacao && (
+            <Card variant="flat" style={styles.explicacaoCard}>
+              <Text style={styles.explicacaoTitle}>Explicação</Text>
+              <Text style={styles.explicacaoTexto}>{explicacao}</Text>
+            </Card>
+          )}
         </>
       )}
     </ScrollView>
@@ -229,4 +264,18 @@ const styles = StyleSheet.create({
 
   emptyCard: { alignItems: 'center', padding: space.lg },
   emptyText: { ...typeTokens.body, color: colors.textSecondary, textAlign: 'center' },
+
+  btnExplicar: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 8,
+    paddingVertical: space.sm,
+    alignItems: 'center',
+    marginTop: space.xs,
+  },
+  btnExplicarLabel: { ...typeTokens.label, color: colors.accent, fontWeight: '700' },
+
+  explicacaoCard: { gap: space.xs },
+  explicacaoTitle: { ...typeTokens.label, color: colors.textSecondary, fontWeight: '700' },
+  explicacaoTexto: { ...typeTokens.body, color: colors.textPrimary, lineHeight: 22 },
 });

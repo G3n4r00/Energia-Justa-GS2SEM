@@ -124,3 +124,8 @@ class PlanOut(BaseModel):
     items: list[PlanItemOut]
 
     model_config = {"from_attributes": True}
+
+
+class PlanExplanationOut(BaseModel):
+    plan_id: int
+    explanation: str

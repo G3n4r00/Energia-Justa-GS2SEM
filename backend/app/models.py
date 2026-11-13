@@ -51,3 +51,29 @@ class SensorReading(Base):
     appliance_id = Column(Integer, nullable=True)
     simulated = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Plan(Base):
+    __tablename__ = "plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    target_brl = Column(Float, nullable=False)
+    current_brl = Column(Float, nullable=False)
+    projected_brl = Column(Float, nullable=False)
+    savings_brl = Column(Float, nullable=False)
+    status = Column(String, nullable=False)  # "reached" | "not_reached"
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class PlanItem(Base):
+    __tablename__ = "plan_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    plan_id = Column(Integer, nullable=False, index=True)
+    appliance_id = Column(Integer, nullable=False)
+    appliance_name = Column(String, nullable=False)
+    current_daily_hours = Column(Float, nullable=False)
+    suggested_daily_hours = Column(Float, nullable=False)
+    current_brl = Column(Float, nullable=False)
+    projected_brl = Column(Float, nullable=False)
+    saving_brl = Column(Float, nullable=False)

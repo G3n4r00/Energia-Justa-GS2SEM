@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from .routers import health, appliances, config, consumption, tariffs, sensors
+from .routers import health, appliances, config, consumption, tariffs, sensors, plans
 from .database import create_tables, SessionLocal
 from .seed import run_seed
 
@@ -29,3 +29,4 @@ app.include_router(config.router)
 app.include_router(consumption.router)
 app.include_router(tariffs.router)
 app.include_router(sensors.router)
+app.include_router(plans.router)

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { AppliancesScreen } from './src/screens/AppliancesScreen';
 import { SimuladorScreen } from './src/screens/SimuladorScreen';
+import { PlanoScreen } from './src/screens/PlanoScreen';
 import { colors, type } from './src/ui/tokens';
 
 const Tab = createBottomTabNavigator();
@@ -48,6 +49,16 @@ export default function App() {
           options={{
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="pulse-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Plano"
+          component={PlanoScreen}
+          options={{
+            tabBarLabel: 'Plano',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="trending-down-outline" size={size} color={color} />
             ),
           }}
         />

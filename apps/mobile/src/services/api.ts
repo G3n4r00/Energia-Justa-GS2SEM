@@ -1,4 +1,4 @@
-import type { Appliance, AppliancePayload, ConsumptionSummary, HouseholdConfig, SensorReading, SensorReadingPayload, Tariff } from '../types';
+import type { Appliance, AppliancePayload, ConsumptionSummary, HouseholdConfig, Plan, SensorReading, SensorReadingPayload, Tariff } from '../types';
 
 // 10.0.2.2 é o loopback do host no emulador Android.
 // Para dispositivo físico, defina EXPO_PUBLIC_API_URL com o IP da máquina.
@@ -47,4 +47,13 @@ export const api = {
 
   getSensorReadings: (limit = 20) =>
     request<SensorReading[]>(`/sensors/readings?limit=${limit}`),
+
+  createPlan: (target_brl?: number) =>
+    request<Plan>('/plans', {
+      method: 'POST',
+      body: JSON.stringify(target_brl !== undefined ? { target_brl } : {}),
+    }),
+
+  getLastPlan: () =>
+    request<Plan[]>('/plans').then(plans => plans[0] ?? null),
 };

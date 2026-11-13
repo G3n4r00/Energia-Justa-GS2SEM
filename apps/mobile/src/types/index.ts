@@ -31,6 +31,28 @@ export type ConsumptionItem = {
   pct_of_total: number;
 };
 
+export type PlanItem = {
+  id: number;
+  appliance_id: number;
+  appliance_name: string;
+  current_daily_hours: number;
+  suggested_daily_hours: number;
+  current_brl: number;
+  projected_brl: number;
+  saving_brl: number;
+};
+
+export type Plan = {
+  id: number;
+  target_brl: number;
+  current_brl: number;
+  projected_brl: number;
+  savings_brl: number;
+  status: 'reached' | 'not_reached';
+  created_at: string;
+  items: PlanItem[];
+};
+
 export type SensorReading = {
   id: number;
   voltage_rms_v: number;

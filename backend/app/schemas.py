@@ -94,3 +94,33 @@ class ConsumptionSummaryOut(BaseModel):
     tariff_rate_brl_kwh: float
     tariff_is_demo: bool
     items: list[ConsumptionItemOut]
+
+
+class PlanRequest(BaseModel):
+    target_brl: Optional[float] = Field(default=None, gt=0)
+
+
+class PlanItemOut(BaseModel):
+    id: int
+    appliance_id: int
+    appliance_name: str
+    current_daily_hours: float
+    suggested_daily_hours: float
+    current_brl: float
+    projected_brl: float
+    saving_brl: float
+
+    model_config = {"from_attributes": True}
+
+
+class PlanOut(BaseModel):
+    id: int
+    target_brl: float
+    current_brl: float
+    projected_brl: float
+    savings_brl: float
+    status: str
+    created_at: datetime
+    items: list[PlanItemOut]
+
+    model_config = {"from_attributes": True}

@@ -9,6 +9,7 @@ até a meta ser atingida. Aparelhos protegidos nunca aparecem nas sugestões.
 from dataclasses import dataclass, field
 from typing import Optional
 
+from .engine import custo_brl
 from .models import Appliance
 
 
@@ -33,10 +34,6 @@ class PlanResult:
     items: list[PlanItem] = field(default_factory=list)
 
 
-def _custo(power_w: float, daily_hours: float, ciclo_dias: int, tarifa: float) -> float:
-    return round((power_w / 1000) * daily_hours * ciclo_dias * tarifa, 4)
-
-
 def gerar_plano(
     aparelhos: list[Appliance],
     tarifa_brl_kwh: float,
@@ -44,7 +41,7 @@ def gerar_plano(
     meta_brl: float,
 ) -> PlanResult:
     ativos = [a for a in aparelhos if a.is_active]
-    custo_atual = sum(_custo(a.power_w, a.daily_hours, ciclo_dias, tarifa_brl_kwh) for a in ativos)
+    custo_atual = sum(custo_brl(a.power_w, a.daily_hours, ciclo_dias, tarifa_brl_kwh) for a in ativos)
 
     if custo_atual <= meta_brl:
         return PlanResult(
@@ -57,12 +54,12 @@ def gerar_plano(
 
     candidatos = sorted(
         [a for a in ativos if not a.is_protected and a.daily_hours > 0],
-        key=lambda a: _custo(a.power_w, a.daily_hours, ciclo_dias, tarifa_brl_kwh),
+        key=lambda a: custo_brl(a.power_w, a.daily_hours, ciclo_dias, tarifa_brl_kwh),
         reverse=True,
     )
 
     economia_max = sum(
-        _custo(a.power_w, a.daily_hours, ciclo_dias, tarifa_brl_kwh) for a in candidatos
+        custo_brl(a.power_w, a.daily_hours, ciclo_dias, tarifa_brl_kwh) for a in candidatos
     )
     economia_necessaria = custo_atual - meta_brl
 
@@ -70,7 +67,7 @@ def gerar_plano(
     economia_acumulada = 0.0
 
     for a in candidatos:
-        custo_a = _custo(a.power_w, a.daily_hours, ciclo_dias, tarifa_brl_kwh)
+        custo_a = custo_brl(a.power_w, a.daily_hours, ciclo_dias, tarifa_brl_kwh)
         faltante = economia_necessaria - economia_acumulada
 
         if custo_a <= faltante:

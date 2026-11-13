@@ -66,6 +66,14 @@ def create_plan(data: PlanRequest = PlanRequest(), db: Session = Depends(get_db)
     return _load_plan(plan.id, db)
 
 
+@router.get("/last", response_model=PlanOut)
+def last_plan(db: Session = Depends(get_db)):
+    plan = db.query(Plan).order_by(Plan.id.desc()).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Nenhum plano gerado ainda")
+    return _load_plan(plan.id, db)
+
+
 @router.get("", response_model=list[PlanOut])
 def list_plans(db: Session = Depends(get_db)):
     plans = db.query(Plan).order_by(Plan.id.desc()).limit(10).all()

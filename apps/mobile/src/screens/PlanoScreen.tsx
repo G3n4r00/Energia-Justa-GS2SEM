@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -29,6 +29,7 @@ export function PlanoScreen() {
   const [plano, setPlano] = useState<Plan | null>(null);
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const metaDefinida = useRef(false);
 
   const carregarUltimoPlano = useCallback(async () => {
     try {
@@ -36,14 +37,15 @@ export function PlanoScreen() {
         api.getConfig(),
         api.getLastPlan(),
       ]);
-      if (metaInput === '') {
+      if (!metaDefinida.current) {
         setMetaInput(config.budget_brl.toFixed(2).replace('.', ','));
+        metaDefinida.current = true;
       }
       if (ultimo) setPlano(ultimo);
     } catch {
       // silencioso: tela pode funcionar sem dados anteriores
     }
-  }, [metaInput]);
+  }, []);
 
   useFocusEffect(useCallback(() => { carregarUltimoPlano(); }, [carregarUltimoPlano]));
 

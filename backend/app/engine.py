@@ -1,6 +1,11 @@
 from dataclasses import dataclass
 
 
+def custo_brl(power_w: float, daily_hours: float, ciclo_dias: int, tarifa: float) -> float:
+    """Custo em R$ de um aparelho num ciclo. Função compartilhada com o recomendador."""
+    return round((power_w / 1000.0) * daily_hours * ciclo_dias * tarifa, 4)
+
+
 @dataclass
 class ApplianceInput:
     id: int

@@ -55,5 +55,5 @@ export const api = {
     }),
 
   getLastPlan: () =>
-    request<Plan[]>('/plans').then(plans => plans[0] ?? null),
+    request<Plan>('/plans/last').catch(() => null),
 };

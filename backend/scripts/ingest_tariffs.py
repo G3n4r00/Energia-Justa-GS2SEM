@@ -11,7 +11,6 @@ Uso:
     python -m scripts.ingest_tariffs
 """
 
-import asyncio
 import logging
 import sys
 from datetime import date, datetime

@@ -1,5 +1,5 @@
 from datetime import date, datetime, timezone
-from sqlalchemy import Boolean, Column, Date, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, String
 from .database import Base
 
 
@@ -69,7 +69,7 @@ class PlanItem(Base):
     __tablename__ = "plan_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    plan_id = Column(Integer, nullable=False, index=True)
+    plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False, index=True)
     appliance_id = Column(Integer, nullable=False)
     appliance_name = Column(String, nullable=False)
     current_daily_hours = Column(Float, nullable=False)

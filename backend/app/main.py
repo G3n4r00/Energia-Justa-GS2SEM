@@ -1,7 +1,8 @@
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from .routers import health, appliances, config, consumption, tariffs, sensors, plans
+from fastapi.middleware.cors import CORSMiddleware
+from .routers import health, appliances, config, consumption, tariffs, sensors, plans, analytics
 from .database import create_tables, SessionLocal
 from .seed import run_seed
 from scripts.ingest_tariffs import refresh_tariff_if_stale
@@ -20,7 +21,14 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="EnergiaJusta API", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="EnergiaJusta API", version="0.3.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(health.router)
 app.include_router(appliances.router)
@@ -29,3 +37,4 @@ app.include_router(consumption.router)
 app.include_router(tariffs.router)
 app.include_router(sensors.router)
 app.include_router(plans.router)
+app.include_router(analytics.router)

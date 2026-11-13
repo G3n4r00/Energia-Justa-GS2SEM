@@ -15,5 +15,12 @@ services:
       retries: 3
       start_period: 15s
 
+  dashboard:
+    build: ./apps/dashboard
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
 volumes:
   sqlite_data:

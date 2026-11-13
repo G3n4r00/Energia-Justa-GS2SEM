@@ -129,3 +129,24 @@ class PlanOut(BaseModel):
 class PlanExplanationOut(BaseModel):
     plan_id: int
     explanation: str
+
+
+class AnalyticsSummaryOut(BaseModel):
+    total_kwh: float
+    total_brl: float
+    budget_brl: float
+    tariff_rate_brl_kwh: float
+    appliance_count: int
+    savings_potential_brl: float
+    category: Optional[str] = None
+
+
+class SeriesPointOut(BaseModel):
+    date: str
+    avg_power_w: float
+    readings_count: int
+
+
+class AnalyticsSeriesOut(BaseModel):
+    period_days: int
+    points: list[SeriesPointOut]

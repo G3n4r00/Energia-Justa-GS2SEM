@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-from .models import Appliance, HouseholdConfig, Tariff
+from .models import Appliance, HouseholdConfig, SensorReading, Tariff
 
 _APPLIANCES = [
     {"name": "Geladeira Frost Free",       "power_w": 150.0,  "daily_hours": 24.0,  "is_protected": True,  "category": "cooling"},
@@ -11,6 +11,17 @@ _APPLIANCES = [
     {"name": "Microondas",                  "power_w": 1200.0, "daily_hours": 0.25,  "is_protected": False, "category": "cooking"},
     {"name": "Ferro elétrico",              "power_w": 1000.0, "daily_hours": 0.5,   "is_protected": False, "category": "appliance"},
     {"name": "Computador + monitor",        "power_w": 200.0,  "daily_hours": 8.0,   "is_protected": False, "category": "electronics"},
+]
+
+# Leituras de demonstração para o gráfico de telemetria do dashboard
+_SEED_READINGS = [
+    (6, 220.0, 1.04, 0.92),
+    (5, 221.5, 0.92, 0.91),
+    (4, 219.8, 1.15, 0.93),
+    (3, 222.0, 0.88, 0.90),
+    (2, 220.5, 1.22, 0.92),
+    (1, 218.9, 0.95, 0.94),
+    (0, 221.0, 1.08, 0.91),
 ]
 
 
@@ -34,5 +45,18 @@ def run_seed(db: Session) -> None:
             is_demo=True,
             import_run="seed_v2",
         ))
+
+    if db.query(SensorReading).count() == 0:
+        now = datetime.now(timezone.utc)
+        for days_ago, v, i, fp in _SEED_READINGS:
+            ts = now - timedelta(days=days_ago)
+            db.add(SensorReading(
+                voltage_rms_v=v,
+                current_rms_a=i,
+                power_factor=fp,
+                power_w=round(v * i * fp, 2),
+                simulated=True,
+                created_at=ts,
+            ))
 
     db.commit()

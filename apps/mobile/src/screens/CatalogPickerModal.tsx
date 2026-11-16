@@ -34,13 +34,16 @@ type Props = {
 export function CatalogPickerModal({ visible, onClose, onSelect }: Props) {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState(false);
   const [busca, setBusca] = useState('');
 
   useEffect(() => {
     if (!visible) return;
     setLoading(true);
+    setErro(false);
     api.getCatalog()
       .then(setCatalog)
+      .catch(() => setErro(true))
       .finally(() => setLoading(false));
   }, [visible]);
 
@@ -109,6 +112,10 @@ export function CatalogPickerModal({ visible, onClose, onSelect }: Props) {
 
         {loading ? (
           <ActivityIndicator size="large" color={colors.accent} style={styles.loader} />
+        ) : erro ? (
+          <Text style={styles.semResultados}>
+            Não foi possível carregar o catálogo. Verifique se o backend está rodando e rebuilde o container com --build.
+          </Text>
         ) : (
           <SectionList
             sections={sections}

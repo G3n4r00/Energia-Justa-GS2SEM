@@ -98,7 +98,9 @@ export function AppliancesScreen() {
     } else {
       setForm(FORM_EMPTY);
     }
-    setModalVisible(true);
+    // Fechar o catálogo primeiro; abrir o formulário após a animação de saída
+    setCatalogVisible(false);
+    setTimeout(() => setModalVisible(true), 350);
   }
 
   function openEdit(a: Appliance) {
@@ -174,7 +176,7 @@ export function AppliancesScreen() {
         <FlatList
           data={appliances}
           keyExtractor={a => String(a.id)}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, appliances.length === 0 && styles.listEmpty]}
           ListEmptyComponent={
             <View style={styles.center}>
               <Text style={styles.emptyTitle}>Nenhum aparelho ainda</Text>
@@ -283,6 +285,7 @@ export function AppliancesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   listContent: { padding: space.md, paddingBottom: 96 },
+  listEmpty: { flex: 1 },
   center: {
     flex: 1,
     alignItems: 'center',

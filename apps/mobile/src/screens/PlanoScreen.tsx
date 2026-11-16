@@ -231,8 +231,6 @@ const styles = StyleSheet.create({
   erroTexto: { ...typeTokens.caption, color: colors.danger },
 
   resumoCard: { gap: space.xs },
-  resumoOk: {},
-  resumoAlert: {},
   statusChip: {
     alignSelf: 'flex-start',
     borderRadius: 999,

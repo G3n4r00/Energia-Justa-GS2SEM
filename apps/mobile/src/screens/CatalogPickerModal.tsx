@@ -66,13 +66,11 @@ export function CatalogPickerModal({ visible, onClose, onSelect }: Props) {
   function handleSelect(item: CatalogItem) {
     setBusca('');
     onSelect(item);
-    onClose();
   }
 
   function handleManual() {
     setBusca('');
     onSelect(null);
-    onClose();
   }
 
   return (

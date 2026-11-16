@@ -24,9 +24,20 @@ function formatHoras(h: number) {
   return `${h.toFixed(1).replace('.', ',')}h/dia`;
 }
 
+// Arredonda para múltiplo de 5 mais próximo (metas ficam com números limpos)
+function metaRedonda(valor: number, direcao: 'baixo' | 'cima'): number {
+  const arred = direcao === 'baixo'
+    ? Math.floor(valor / 5) * 5
+    : Math.ceil(valor / 5) * 5;
+  return Math.max(10, arred);
+}
+
+type Cenario = { plano: Plan; label: string; isPrincipal: boolean };
+
 export function PlanoScreen() {
   const [metaInput, setMetaInput] = useState('');
   const [plano, setPlano] = useState<Plan | null>(null);
+  const [cenarios, setCenarios] = useState<Cenario[] | null>(null);
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [explicacao, setExplicacao] = useState<string | null>(null);
@@ -45,7 +56,7 @@ export function PlanoScreen() {
       }
       if (ultimo) setPlano(ultimo);
     } catch {
-      // silencioso: tela pode funcionar sem dados anteriores
+      // silencioso
     }
   }, []);
 
@@ -60,9 +71,26 @@ export function PlanoScreen() {
     setErro(null);
     setGerando(true);
     setExplicacao(null);
+    setCenarios(null);
+
+    const metaBaixa = metaRedonda(meta * 0.65, 'baixo');
+    const metaAlta  = metaRedonda(meta * 1.5,  'cima');
+
     try {
-      const p = await api.createPlan(meta);
-      setPlano(p);
+      // Cenários de comparação primeiro; plano principal por último
+      // para que /plans/last continue apontando para a meta do usuário
+      const [planoBaixo, planoAlto] = await Promise.all([
+        api.createPlan(metaBaixa),
+        api.createPlan(metaAlta),
+      ]);
+      const planoPrincipal = await api.createPlan(meta);
+
+      setPlano(planoPrincipal);
+      setCenarios([
+        { plano: planoBaixo,    label: 'Mais esforço',  isPrincipal: false },
+        { plano: planoPrincipal, label: 'Sua meta',      isPrincipal: true  },
+        { plano: planoAlto,     label: 'Menos esforço', isPrincipal: false },
+      ]);
     } catch (e) {
       setErro(String(e));
     } finally {
@@ -88,6 +116,8 @@ export function PlanoScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+
+      {/* ── Formulário ─────────────────────────────── */}
       <Card style={styles.formCard}>
         <Text style={styles.formLabel}>Meta de orçamento (R$)</Text>
         <View style={styles.formRow}>
@@ -115,6 +145,7 @@ export function PlanoScreen() {
 
       {plano && (
         <>
+          {/* ── Resumo ─────────────────────────────── */}
           <Card style={styles.resumoCard}>
             <View style={[styles.statusChip, atingiu ? styles.chipOk : styles.chipAlert]}>
               <Text style={[styles.statusLabel, atingiu ? styles.statusOk : styles.statusAlert]}>
@@ -137,6 +168,54 @@ export function PlanoScreen() {
             </View>
           </Card>
 
+          {/* ── Comparação de metas ────────────────── */}
+          {cenarios && (
+            <>
+              <Text style={styles.sectionTitle}>Comparação de metas</Text>
+              <View style={styles.cenariosRow}>
+                {cenarios.map((c) => {
+                  const ok = c.plano.status === 'reached';
+                  const falta = c.plano.projected_brl - c.plano.target_brl;
+                  const nCortes = c.plano.items.length;
+                  return (
+                    <View
+                      key={c.plano.id}
+                      style={[styles.cenarioCard, c.isPrincipal && styles.cenarioCardPrincipal]}
+                    >
+                      <Text style={[styles.cenarioTag, c.isPrincipal && styles.cenarioTagPrincipal]}>
+                        {c.label}
+                      </Text>
+                      <Text style={[styles.cenarioMeta, c.isPrincipal && styles.cenarioMetaPrincipal]}>
+                        {formatBRL(c.plano.target_brl)}
+                      </Text>
+
+                      {ok ? (
+                        <View style={styles.cenarioStatusOkPill}>
+                          <Text style={styles.cenarioStatusOkText}>✓ atingível</Text>
+                        </View>
+                      ) : (
+                        <Text style={[styles.cenarioFalta, c.isPrincipal && styles.cenarioFaltaPrincipal]}>
+                          falta {formatBRL(falta)}
+                        </Text>
+                      )}
+
+                      <Text style={[styles.cenarioProjetado, c.isPrincipal && styles.cenarioProjetadoPrincipal]}>
+                        proj. {formatBRL(c.plano.projected_brl)}
+                      </Text>
+
+                      <Text style={[styles.cenarioCortes, c.isPrincipal && styles.cenarioCortesPrincipal]}>
+                        {nCortes === 0
+                          ? 'sem cortes'
+                          : `${nCortes} ${nCortes === 1 ? 'sugestão' : 'sugestões'}`}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {/* ── Sugestões ──────────────────────────── */}
           {plano.items.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>Sugestões</Text>
@@ -178,6 +257,7 @@ export function PlanoScreen() {
             </Card>
           )}
 
+          {/* ── IA ─────────────────────────────────── */}
           <TouchableOpacity
             style={[styles.btnExplicar, explicando && styles.btnDisabled]}
             onPress={explicarPlano}
@@ -203,8 +283,9 @@ export function PlanoScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: colors.background },
-  content: { padding: space.md, gap: space.md },
+  content: { padding: space.md, gap: space.md, paddingBottom: 40 },
 
+  // Formulário
   formCard: { gap: space.sm },
   formLabel: { ...typeTokens.label, color: colors.textSecondary },
   formRow: { flexDirection: 'row', gap: space.sm },
@@ -230,6 +311,7 @@ const styles = StyleSheet.create({
   btnLabel: { ...typeTokens.label, color: colors.brand, fontWeight: '700' },
   erroTexto: { ...typeTokens.caption, color: colors.danger },
 
+  // Resumo
   resumoCard: { gap: space.xs },
   statusChip: {
     alignSelf: 'flex-start',
@@ -256,6 +338,74 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
 
+  // Comparação de metas
+  cenariosRow: {
+    flexDirection: 'row',
+    gap: space.sm,
+  },
+  cenarioCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: space.xs,
+    paddingVertical: space.md,
+    paddingHorizontal: space.xs + 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  cenarioCardPrincipal: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
+    // Sombra leve para destacar
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+  },
+  cenarioTag: {
+    ...typeTokens.caption,
+    color: colors.textCaption,
+    textAlign: 'center',
+  },
+  cenarioTagPrincipal: { color: 'rgba(255,255,255,0.55)' },
+  cenarioMeta: {
+    ...typeTokens.title,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  cenarioMetaPrincipal: { color: colors.accent },
+
+  cenarioStatusOkPill: {
+    backgroundColor: colors.successBg,
+    borderRadius: 999,
+    paddingHorizontal: space.xs + 2,
+    paddingVertical: 2,
+  },
+  cenarioStatusOkText: { ...typeTokens.caption, color: colors.success, fontWeight: '600' },
+  cenarioFalta: {
+    ...typeTokens.caption,
+    color: colors.warning,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  cenarioFaltaPrincipal: { color: '#FFBD54' },
+
+  cenarioProjetado: {
+    ...typeTokens.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  cenarioProjetadoPrincipal: { color: 'rgba(255,255,255,0.6)' },
+  cenarioCortes: {
+    ...typeTokens.caption,
+    color: colors.textCaption,
+    textAlign: 'center',
+  },
+  cenarioCortesPrincipal: { color: 'rgba(255,255,255,0.45)' },
+
+  // Sugestões
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -274,6 +424,7 @@ const styles = StyleSheet.create({
   emptyCard: { alignItems: 'center', padding: space.lg },
   emptyText: { ...typeTokens.body, color: colors.textSecondary, textAlign: 'center' },
 
+  // IA
   btnExplicar: {
     borderWidth: 1,
     borderColor: colors.accent,

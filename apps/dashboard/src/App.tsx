@@ -121,7 +121,11 @@ export default function App() {
 
             <div style={chartsGridStyle}>
               <SeriesChart points={series?.points ?? []} periodDays={periodDays} />
-              <ApplianceChart items={consumption?.items ?? []} />
+              <ApplianceChart
+                items={(consumption?.items ?? []).filter(
+                  (item) => !category || item.category === category
+                )}
+              />
             </div>
           </>
         )}

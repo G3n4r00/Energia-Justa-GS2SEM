@@ -30,6 +30,7 @@ export interface AnalyticsSeries {
 export interface ConsumptionItem {
   id: number
   name: string
+  category: string
   kwh: number
   brl: number
   pct_of_total: number

@@ -26,6 +26,7 @@ def consumption_summary(db: Session = Depends(get_db)):
             power_w=a.power_w,
             daily_hours=a.daily_hours,
             is_active=a.is_active,
+            category=a.category or "",
         )
         for a in appliances
     ]
@@ -43,6 +44,7 @@ def consumption_summary(db: Session = Depends(get_db)):
             ConsumptionItemOut(
                 id=i.id,
                 name=i.name,
+                category=i.category,
                 kwh=i.kwh,
                 brl=i.brl,
                 pct_of_total=i.pct_of_total,

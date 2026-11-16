@@ -81,6 +81,7 @@ class TariffOut(BaseModel):
 class ConsumptionItemOut(BaseModel):
     id: int
     name: str
+    category: str
     kwh: float
     brl: float
     pct_of_total: float

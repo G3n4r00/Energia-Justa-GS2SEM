@@ -13,12 +13,14 @@ class ApplianceInput:
     power_w: float
     daily_hours: float
     is_active: bool
+    category: str = ""
 
 
 @dataclass
 class ConsumptionItem:
     id: int
     name: str
+    category: str
     kwh: float
     brl: float
     pct_of_total: float
@@ -44,7 +46,7 @@ def calcular_consumo(
             continue
         kwh = round((a.power_w / 1000.0) * a.daily_hours * ciclo_dias, 3)
         total_kwh += kwh
-        items.append(ConsumptionItem(id=a.id, name=a.name, kwh=kwh, brl=0.0, pct_of_total=0.0))
+        items.append(ConsumptionItem(id=a.id, name=a.name, category=a.category, kwh=kwh, brl=0.0, pct_of_total=0.0))
 
     total_kwh = round(total_kwh, 3)
     total_brl = round(total_kwh * tarifa_brl_kwh, 2)

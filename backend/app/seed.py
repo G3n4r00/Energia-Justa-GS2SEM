@@ -26,11 +26,9 @@ _SEED_READINGS = [
 
 
 def run_seed(db: Session) -> None:
-    if db.query(Appliance).count() > 0:
-        return
-
-    for data in _APPLIANCES:
-        db.add(Appliance(**data))
+    if db.query(Appliance).count() == 0:
+        for data in _APPLIANCES:
+            db.add(Appliance(**data))
 
     if db.query(HouseholdConfig).count() == 0:
         db.add(HouseholdConfig(budget_brl=200.0, cycle_days=30))

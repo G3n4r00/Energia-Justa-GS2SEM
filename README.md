@@ -4,6 +4,8 @@ App mobile de planejamento de consumo energético doméstico por orçamento. Voc
 
 FIAP Global Solution 2026/2, turma 4ESOA, tema CitizenTech.
 
+**Vídeo pitch:** https://youtu.be/zuqIjqfLfJE
+
 ## Integrantes
 
 | Nome | RM |
